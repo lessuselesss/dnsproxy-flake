@@ -17,10 +17,14 @@
             owner = "AdguardTeam";
             repo = "dnsproxy";
             rev = "v${version}";
-            sha256 = "sha256-fsJWyb3YFmTeLf1qbO42RTldiEv3MeXyrySywGmIg5A="; # Updated from prefetch
+            sha256 = "sha256-fsJWyb3YFmTeLf1qbO42RTldiEv3MeXyrySywGmIg5A=";
           };
-          vendorHash = "sha256-oINdRXLtfoCOpZ+n4HAkPtXyKen4m9VaDz1ggiEzehc="; # Your provided hash
+          vendorHash = "sha256-oINdRXLtfoCOpZ+n4HAkPtXyKen4m9VaDz1ggiEzehc=";
           subPackages = [ "." ]; # Build only the main package
+          # Embed version info using ldflags
+          ldflags = [
+            "-X main.VersionString=${version}"
+          ];
           meta = with pkgs.lib; {
             description = "Simple DNS proxy with DoH, DoT, DoQ, and DNSCrypt support";
             homepage = "https://github.com/AdguardTeam/dnsproxy";
