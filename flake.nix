@@ -20,6 +20,7 @@
             sha256 = "sha256-qrJ5m7k5xLgyW8oS2vXOOQeVsoh6xL2eA8qF8z0bX+I=";
           };
           vendorHash = "sha256-xFJBkH/BRKk+qfXQVtuN3rS7o7lS8oWj5f6j5e5f5e4=";
+          subPackages = [ "." ]; # Build only the main package
           meta = with pkgs.lib; {
             description = "Simple DNS proxy with DoH, DoT, DoQ, and DNSCrypt support";
             homepage = "https://github.com/AdguardTeam/dnsproxy";
