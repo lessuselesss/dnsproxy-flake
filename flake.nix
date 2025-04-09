@@ -34,7 +34,7 @@
             description = "Simple DNS proxy with DoH, DoT, DoQ, and DNSCrypt support";
             homepage = "https://github.com/AdguardTeam/dnsproxy";
             license = licenses.asl20;
-            maintainers = [ maintainers."yourname" ]; # Optional: replace with your name
+            maintainers = with maintainers; [ ];
           };
         };
       in
@@ -44,6 +44,147 @@
           type = "app";
           program = "${dnsproxy}/bin/dnsproxy";
         };
+        
+        # Define apps for each DNS provider
+        apps.dnsproxy-cloudflare-tor = {
+          type = "app";
+          program = pkgs.writeShellScript "dnsproxy-cloudflare-tor" ''
+            exec ${dnsproxy}/bin/dnsproxy \
+              --listen=127.1.1.11 \
+              --port=53 \
+              --upstream=https://dns4torpnlfs2ifuz2s2yf3fc7rdmsbhm6rw75euj35pac6ap25zgqad.onion/dns-query \
+              --proxy=socks5://127.0.0.1:9050 \
+              --cache \
+              --cache-size=4096 \
+              --log
+          '';
+        };
+
+        apps.dnsproxy-google = {
+          type = "app";
+          program = pkgs.writeShellScript "dnsproxy-google" ''
+            exec ${dnsproxy}/bin/dnsproxy \
+              --listen=127.8.8.88 \
+              --port=53 \
+              --upstream=dns://8.8.8.8 \
+              --upstream=dns://8.8.4.4 \
+              --cache \
+              --cache-size=4096 \
+              --log
+          '';
+        };
+
+        apps.dnsproxy-quad9 = {
+          type = "app";
+          program = pkgs.writeShellScript "dnsproxy-quad9" ''
+            exec ${dnsproxy}/bin/dnsproxy \
+              --listen=127.9.9.99 \
+              --port=53 \
+              --upstream=dns://9.9.9.9 \
+              --upstream=dns://149.112.112.112 \
+              --cache \
+              --cache-size=4096 \
+              --log
+          '';
+        };
+
+        apps.dnsproxy-adguard = {
+          type = "app";
+          program = pkgs.writeShellScript "dnsproxy-adguard" ''
+            exec ${dnsproxy}/bin/dnsproxy \
+              --listen=127.94.14.14 \
+              --port=53 \
+              --upstream=dns://94.140.14.14 \
+              --upstream=dns://94.140.15.15 \
+              --cache \
+              --cache-size=4096 \
+              --log
+          '';
+        };
+
+        apps.dnsproxy-opendns = {
+          type = "app";
+          program = pkgs.writeShellScript "dnsproxy-opendns" ''
+            exec ${dnsproxy}/bin/dnsproxy \
+              --listen=127.208.67.222 \
+              --port=53 \
+              --upstream=dns://208.67.222.222 \
+              --upstream=dns://208.67.220.220 \
+              --cache \
+              --cache-size=4096 \
+              --log
+          '';
+        };
+
+        apps.dnsproxy-verisign = {
+          type = "app";
+          program = pkgs.writeShellScript "dnsproxy-verisign" ''
+            exec ${dnsproxy}/bin/dnsproxy \
+              --listen=127.64.6.64 \
+              --port=53 \
+              --upstream=dns://64.6.64.6 \
+              --upstream=dns://64.6.65.6 \
+              --cache \
+              --cache-size=4096 \
+              --log
+          '';
+        };
+
+        apps.dnsproxy-dnswatch = {
+          type = "app";
+          program = pkgs.writeShellScript "dnsproxy-dnswatch" ''
+            exec ${dnsproxy}/bin/dnsproxy \
+              --listen=127.185.39.10 \
+              --port=53 \
+              --upstream=dns://84.200.69.80 \
+              --upstream=dns://84.200.70.40 \
+              --cache \
+              --cache-size=4096 \
+              --log
+          '';
+        };
+
+        apps.dnsproxy-cleanbrowsing = {
+          type = "app";
+          program = pkgs.writeShellScript "dnsproxy-cleanbrowsing" ''
+            exec ${dnsproxy}/bin/dnsproxy \
+              --listen=127.145.97.171 \
+              --port=53 \
+              --upstream=dns://185.228.168.9 \
+              --upstream=dns://185.228.169.9 \
+              --cache \
+              --cache-size=4096 \
+              --log
+          '';
+        };
+
+        apps.dnsproxy-uncensoreddns = {
+          type = "app";
+          program = pkgs.writeShellScript "dnsproxy-uncensoreddns" ''
+            exec ${dnsproxy}/bin/dnsproxy \
+              --listen=127.77.36.11 \
+              --port=53 \
+              --upstream=dns://89.233.43.71 \
+              --upstream=dns://91.239.100.100 \
+              --cache \
+              --cache-size=4096 \
+              --log
+          '';
+        };
+
+        apps.dnsproxy-nextdns = {
+          type = "app";
+          program = pkgs.writeShellScript "dnsproxy-nextdns" ''
+            exec ${dnsproxy}/bin/dnsproxy \
+              --listen=127.45.45.45 \
+              --port=53 \
+              --upstream=https://dns.nextdns.io/6f7e8e \
+              --cache \
+              --cache-size=4096 \
+              --log
+          '';
+        };
+        
         nixosModules.dnsproxy-providers = { config, lib, pkgs, ... }:
           with lib;
           let
@@ -252,7 +393,7 @@
                       ${dnsproxy}/bin/dnsproxy \
                         --listen=127.45.45.45 \
                         --port=53 \
-                        --upstream=https://dns.nextdns.io/<your-id> \
+                        --upstream=https://dns.nextdns.io/6f7e8e \
                         --cache \
                         --cache-size=4096 \
                         --log
