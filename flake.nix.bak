@@ -21,10 +21,15 @@
           };
           vendorHash = "sha256-oINdRXLtfoCOpZ+n4HAkPtXyKen4m9VaDz1ggiEzehc=";
           subPackages = [ "." ]; # Build only the main package
-          # Embed version info using ldflags
+          # Inject version into main.versionString
           ldflags = [
-            "-X main.VersionString=${version}"
+            "-s" "-w" # Strip debug info for smaller binary
+            "-X main.versionString=${version}"
           ];
+          # Ensure build flags are passed correctly
+          preBuild = ''
+            echo "Building with ldflags: ${lib.concatStringsSep " " ldflags}"
+          '';
           meta = with pkgs.lib; {
             description = "Simple DNS proxy with DoH, DoT, DoQ, and DNSCrypt support";
             homepage = "https://github.com/AdguardTeam/dnsproxy";
