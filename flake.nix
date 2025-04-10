@@ -24,6 +24,9 @@
         
         # Import the loopback setup app
         setupLoopback = import ./modules/setup-loopback.nix { inherit pkgs; };
+        
+        # Import the test proxy
+        testProxy = import ./modules/test-proxy.nix { inherit pkgs dnsproxy; };
       in
       {
         packages.default = dnsproxy;
@@ -35,6 +38,7 @@
             program = "${defaultScript}";
           };
           setup-loopback = setupLoopback;
+          test-proxy = testProxy;
         };
         
         # NixOS module
