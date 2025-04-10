@@ -6,6 +6,8 @@ let
   upstreams = [
     "dns://94.140.14.14"
     "dns://94.140.15.15"
+    "dns://[2001:db8::1]"
+    "dns://[2001:db8::2]"
   ];
 
   # Create the script

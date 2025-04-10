@@ -19,8 +19,8 @@
           exec ${dnsproxy}/bin/dnsproxy "$@"
         '';
         
-        # Import all providers
-        providers = import ./modules/providers.nix { inherit pkgs dnsproxy; };
+        # Import all providers from default.nix
+        providers = import ./modules/default.nix { inherit pkgs dnsproxy; };
         
         # Import the loopback setup app
         setupLoopback = import ./modules/setup-loopback.nix { inherit pkgs; };
@@ -28,13 +28,16 @@
         # Import the test proxy
         testProxy = import ./modules/test-proxy.nix { inherit pkgs dnsproxy; };
         
-        # Import Google with localhost
-        googleLocal = import ./modules/google-local.nix { inherit pkgs dnsproxy; };
+        # Import provider summary for documentation
+        providerSummary = import ./modules/provider-summary.nix { inherit pkgs dnsproxy; };
       in
       {
-        packages.default = dnsproxy;
+        packages = {
+          default = dnsproxy;
+          providerSummaryDoc = providerSummary.markdown;
+        };
         
-        # Add all provider apps, default app, and setup loopback app
+        # Add all provider apps from the central providers module
         apps = providers.apps // {
           default = {
             type = "app";
@@ -42,8 +45,10 @@
           };
           setup-loopback = setupLoopback;
           test-proxy = testProxy;
-          "dnsproxy-google-local" = googleLocal.app."dnsproxy-google-local";
         };
+        
+        # Expose provider information
+        providerInfo = providerSummary.summary;
         
         # NixOS module
         nixosModules.dnsproxy-providers = providers.nixosModule;
