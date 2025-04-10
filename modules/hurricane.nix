@@ -17,10 +17,8 @@ let
   plainDns = {
     enabled = true;
     upstreams = [
-      # IPv4 address
       "74.82.42.42"
-      # IPv6 address - Hurricane Electric has excellent IPv6 support
-      "2001:470:20::2"
+      "2001:470:20::2"  # Existing IPv6 address
     ];
   };
   

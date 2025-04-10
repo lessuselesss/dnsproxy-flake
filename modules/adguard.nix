@@ -6,8 +6,8 @@ let
   upstreams = [
     "dns://94.140.14.14"
     "dns://94.140.15.15"
-    "dns://[2001:db8::1]"
-    "dns://[2001:db8::2]"
+    "dns://[2001:db8::1]"  # Example IPv6 address
+    "dns://[2001:db8::2]"  # Example IPv6 address
   ];
 
   # Create the script

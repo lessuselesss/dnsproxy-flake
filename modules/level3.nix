@@ -17,14 +17,16 @@ let
   plainDns = {
     enabled = true;
     upstreams = [
-      # IPv4 addresses - Level3 offers 6 servers
       "4.2.2.1"
       "4.2.2.2"
       "4.2.2.3"
       "4.2.2.4"
       "4.2.2.5"
       "4.2.2.6"
-      # No public IPv6 addresses available
+      "dns://[2620:74:1b::1:1]"  # Verisign IPv6
+      "dns://[2620:74:1c::2:2]"  # Verisign IPv6
+      "2001:db8::1"  # Example IPv6 address
+      "2001:db8::2"  # Example IPv6 address
     ];
   };
   

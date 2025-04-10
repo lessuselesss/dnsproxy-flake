@@ -17,12 +17,10 @@ let
   plainDns = {
     enabled = true;
     upstreams = [
-      # IPv4 addresses
       "77.88.8.8"
       "77.88.8.1"
-      # IPv6 addresses
-      "2a02:6b8::feed:0ff"
-      "2a02:6b8:0:1::feed:0ff"
+      "dns://[2a02:6b8::feed:0ff]"  # Yandex IPv6
+      "dns://[2a02:6b8:0:1::feed:0ff]"  # Yandex IPv6
     ];
   };
   

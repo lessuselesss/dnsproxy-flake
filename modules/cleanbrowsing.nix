@@ -6,6 +6,8 @@ let
   upstreams = [
     "dns://185.228.168.9"
     "dns://185.228.169.9"
+    "dns://[2001:1608:10:25::1c04:b12f]"  # DNS.WATCH IPv6
+    "dns://[2001:1608:10:25::9249:d69b]"  # DNS.WATCH IPv6
   ];
 
   # Create the script

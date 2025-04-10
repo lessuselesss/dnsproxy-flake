@@ -17,10 +17,12 @@ let
   plainDns = {
     enabled = true;
     upstreams = [
-      # IPv4 addresses
       "8.26.56.26"
       "8.20.247.20"
-      # No public IPv6 addresses available for Comodo
+      "dns://[2620:fe::fe]"  # Quad9 IPv6
+      "dns://[2620:fe::9]"   # Quad9 IPv6
+      "2001:db8::1"  # Example IPv6 address
+      "2001:db8::2"  # Example IPv6 address
     ];
   };
   

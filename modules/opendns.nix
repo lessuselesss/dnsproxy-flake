@@ -4,8 +4,10 @@ let
   name = "opendns";
   listenAddr = "127.208.67.222";
   upstreams = [
-    "dns://208.67.222.222"
-    "dns://208.67.220.220"
+    "208.67.222.222"
+    "208.67.220.220"
+    "dns://[2620:0:ccc::2]"  # OpenDNS IPv6
+    "dns://[2620:0:ccd::2]"  # OpenDNS IPv6
   ];
 
   # Create the script
