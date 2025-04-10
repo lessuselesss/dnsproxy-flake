@@ -1,14 +1,24 @@
 { pkgs, dnsproxy }:
 
 let
-  # Import the library functions
-  lib = import ../lib.nix { inherit pkgs dnsproxy; };
-  
   # Basic provider information
   name = "cloudflare";
-  listenAddr = "127.1.1.1"; # Mnemonic IP matching Cloudflare's 1.1.1.1
-  listenPort = 53;
+  listenAddr = "127.0.0.1"; # Standard localhost address
+  listenPort = 5353; # Use non-privileged port
   description = "DNS Proxy for Cloudflare";
+  
+  # Default upstreams
+  upstreams = [
+    # IPv4 addresses
+    "1.1.1.1"
+    "1.0.0.1"
+    # IPv6 addresses
+    "2606:4700:4700::1111"
+    "2606:4700:4700::1001"
+  ];
+  
+  # Import the library functions
+  lib = import ../lib.nix { inherit pkgs dnsproxy name listenAddr upstreams; };
   
   # Override only what's necessary from the defaults
   config = lib.mergeWithDefaults lib.defaultConfig {
@@ -16,29 +26,7 @@ let
     port = listenPort;
     
     # Plain DNS configuration
-    plainDns = {
-      enabled = true;
-      upstreams = [
-        # IPv4 addresses
-        "1.1.1.1"
-        "1.0.0.1"
-        # IPv6 addresses
-        "2606:4700:4700::1111"
-        "2606:4700:4700::1001"
-        
-        # Family DNS (Malware blocking + Adult content)
-        # "1.1.1.3"
-        # "1.0.0.3"
-        # "2606:4700:4700::1113"
-        # "2606:4700:4700::1003"
-        
-        # Security DNS (Malware blocking only)
-        # "1.1.1.2"
-        # "1.0.0.2"
-        # "2606:4700:4700::1112"
-        # "2606:4700:4700::1002"
-      ];
-    };
+    upstream = upstreams;
     
     # DoT configuration
     dot = {
@@ -93,14 +81,10 @@ let
 in
 {
   app = {
-    "dnsproxy-${name}" = {
+    "${name}" = {
       type = "app";
       program = "${script}";
     };
-  };
-
-  systemdService = {
-    "dnsproxy-${name}" = lib.createSystemdService config;
   };
   
   # Provider IP address information
@@ -109,7 +93,7 @@ in
     description = description;
     listenAddr = listenAddr;
     listenPort = listenPort;
-    ipv6 = ipv6;
+    ipv6 = config.ipv6;
     upstreamAddresses = {
       plain = config.plainDns.upstreams;
       dot = if config.dot.enabled then [config.dot.upstream] else [];

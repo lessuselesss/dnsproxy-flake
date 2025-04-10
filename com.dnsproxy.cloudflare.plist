@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.dnsproxy.cloudflare</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/nix/store/60qfas4s97wiipznl80wi4k8fsx7i92g-dnsproxy-0.71.2/bin/dnsproxy</string>
+        <string>--listen=127.1.1.1</string>
+        <string>--port=53</string>
+        <string>--cache</string>
+        <string>--cache-min-ttl=60</string>
+        <string>--cache-max-ttl=3600</string>
+        <string>--cache-size=4096</string>
+        <string>--timeout=10s</string>
+        <string>--upstream=1.1.1.1</string>
+        <string>--upstream=1.0.0.1</string>
+        <string>--upstream=2606:4700:4700::1111</string>
+        <string>--upstream=2606:4700:4700::1001</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardErrorPath</key>
+    <string>/var/log/dnsproxy-cloudflare.log</string>
+    <key>StandardOutPath</key>
+    <string>/var/log/dnsproxy-cloudflare.log</string>
+</dict>
+</plist> 

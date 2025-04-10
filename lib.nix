@@ -5,69 +5,69 @@ let
   coreDefaults = {
     # Basic configuration
     port = 53;
-    configPath = null;
+    "config-path" = null;
     output = null;
     
     # TLS configuration
-    tlsCrt = null;
-    tlsKey = null;
-    tlsMinVersion = null;
-    tlsMaxVersion = null;
+    "tls-crt" = null;
+    "tls-key" = null;
+    "tls-min-version" = null;
+    "tls-max-version" = null;
     
     # HTTPS configuration
-    httpsPort = null;
-    httpsServerName = null;
-    httpsUserinfo = null;
+    "https-port" = null;
+    "https-server-name" = null;
+    "https-userinfo" = null;
     
     # DNSCrypt configuration
-    dnscryptPort = null;
-    dnscryptConfig = null;
+    "dnscrypt-port" = null;
+    "dnscrypt-config" = null;
     
     # TLS configuration
-    tlsPort = null;
+    "tls-port" = null;
     
     # QUIC configuration
-    quicPort = null;
+    "quic-port" = null;
     
     # Cache configuration
     cache = true;
-    cacheOptimistic = false;
-    cacheMinTtl = 60;
-    cacheMaxTtl = 3600;
-    cacheSize = 4096;
+    "cache-optimistic" = false;
+    "cache-min-ttl" = 60;
+    "cache-max-ttl" = 3600;
+    "cache-size" = 4096;
     
     # Rate limiting
     ratelimit = null;
-    ratelimitSubnetLenIpv4 = null;
-    ratelimitSubnetLenIpv6 = null;
+    "ratelimit-subnet-len-ipv4" = null;
+    "ratelimit-subnet-len-ipv6" = null;
     
     # Performance tuning
-    udpBufSize = null;
-    maxGoRoutines = null;
+    "udp-buf-size" = null;
+    "max-go-routines" = null;
     timeout = "10s";
     
     # Security features
     insecure = false;
-    refuseAny = false;
+    "refuse-any" = false;
     
     # IPv6 configuration
-    ipv6Disabled = false;
+    "ipv6-disabled" = false;
     
     # DNS64 configuration
     dns64 = false;
-    dns64Prefix = null;
+    "dns64-prefix" = null;
     
     # Private DNS configuration
-    usePrivateRdns = false;
-    privateRdnsUpstream = [];
-    privateSubnets = [];
+    "use-private-rdns" = false;
+    "private-rdns-upstream" = [];
+    "private-subnets" = [];
     
     # Hosts file configuration
-    hostsFileEnabled = false;
-    hostsFiles = [];
+    "hosts-file-enabled" = false;
+    "hosts-files" = [];
     
     # Bogus NXDOMAIN configuration
-    bogusNxdomain = [];
+    "bogus-nxdomain" = [];
     
     # Debugging and monitoring
     pprof = false;
@@ -174,31 +174,64 @@ let
     bogusNX = bogusNXDefaults;
   };
 
-  # Helper function to build command line arguments
-  buildArgs = config: let
+  # Build the complete command
+  buildCommand = config: let
     # Convert boolean to string
     boolToStr = b: if b then "true" else "false";
     
     # Build argument if value is not null
     buildArg = name: value:
       if value == null then "" else
-      if builtins.isBool value then "--${name}=${boolToStr value}" else
-      if builtins.isList value then builtins.concatStringsSep " " (map (v: "--${name}=${v}") value) else
-      "--${name}=${value}";
+      if builtins.isBool value then (if value then "--${name}" else "") else
+      if builtins.isList value then builtins.concatStringsSep " " (map (v: "--${name}=${toString v}") value) else
+      "--${name}=${toString value}";
     
-    # Filter out null values and build arguments
-    args = builtins.filter (x: x != "") (builtins.attrValues (builtins.mapAttrs buildArg config));
-  in
-    builtins.concatStringsSep " \\\n      " args;
-
-  # Build the complete command
-  buildCommand = config: ''
+    # Attributes that are handled specially and should be removed
+    specialAttrs = [
+      "dns64"
+      "ipv6"
+      "plainDns"
+      "dot"
+      "doh"
+      "doq"
+      "dnscrypt"
+      "ddns"
+      "bogusNX"
+      "upstream"
+    ];
+    
+    # Build protocol-specific arguments
+    protocolArgs = 
+      (map (upstream: "--upstream=${upstream}") upstreams) ++
+      (if config ? dot && config.dot.enabled then ["--upstream=${config.dot.upstream}"] else []) ++
+      (if config ? doh && config.doh.enabled then ["--upstream=${config.doh.upstream}"] else []) ++
+      (if config ? doq && config.doq.enabled then ["--upstream=${config.doq.upstream}"] else []) ++
+      (if config ? dnscrypt && config.dnscrypt.enabled then ["--upstream=${config.dnscrypt.stamp}"] else []);
+    
+    # Build IPv6 arguments
+    ipv6Args = if config ? ipv6 && config.ipv6.enabled then ["--listen=${config.ipv6.listenAddr}"] else [];
+    
+    # Build DNS64 arguments
+    dns64Args = if config ? dns64 && config.dns64.enabled then ["--dns64" "--dns64-prefix=${config.dns64.prefix}"] else [];
+    
+    # Build bogus NX domain arguments
+    bogusNXArgs = if config ? bogusNX && config.bogusNX.enabled && config.bogusNX.domains != [] 
+      then ["--bogus-nxdomain=${builtins.concatStringsSep "," config.bogusNX.domains}"] 
+      else [];
+    
+    # Combine all arguments
+    allArgs = ["--listen=${listenAddr}" "--port=${toString config.port}"] ++
+      protocolArgs ++
+      ipv6Args ++
+      dns64Args ++
+      bogusNXArgs ++
+      (builtins.filter (x: x != "") 
+        (builtins.attrValues 
+          (builtins.mapAttrs buildArg 
+            (builtins.removeAttrs config specialAttrs))));
+  in ''
     ${dnsproxy}/bin/dnsproxy \
-      --listen=${listenAddr} \
-      --port=${toString config.port} \
-      ${builtins.concatStringsSep " \\\n      " (map (upstream: "--upstream=${upstream}") upstreams)} \
-      ${buildArgs config} \
-      --log
+      ${builtins.concatStringsSep " \\\n      " allArgs}
   '';
 
   # Create the script with all configuration options
@@ -218,7 +251,81 @@ let
     };
   };
 
+  # Create the appropriate service configuration based on the OS
+  createService = config: let
+    isDarwin = pkgs.stdenv.isDarwin;
+    serviceConfig = if isDarwin then {
+      # macOS launchd service
+      type = "app";
+      program = pkgs.writeShellScript "dnsproxy-${name}-launchd" ''
+        #!/bin/sh
+        if [ "$1" = "install" ]; then
+          cat > /Library/LaunchDaemons/com.dnsproxy.${name}.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>Label</key>
+            <string>com.dnsproxy.${name}</string>
+            <key>ProgramArguments</key>
+            <array>
+                <string>${dnsproxy}/bin/dnsproxy</string>
+                ${builtins.concatStringsSep "\n" (map (arg: "                <string>${arg}</string>") (builtins.filter (x: x != "") (builtins.split " " (builtins.replaceStrings ["\\"] [""] (builtins.replaceStrings ["\n"] [" "] (buildCommand config))))))}
+            </array>
+            <key>RunAtLoad</key>
+            <true/>
+            <key>KeepAlive</key>
+            <true/>
+            <key>StandardErrorPath</key>
+            <string>/var/log/dnsproxy-${name}.log</string>
+            <key>StandardOutPath</key>
+            <string>/var/log/dnsproxy-${name}.log</string>
+        </dict>
+        </plist>
+        EOF
+          launchctl load /Library/LaunchDaemons/com.dnsproxy.${name}.plist
+        elif [ "$1" = "uninstall" ]; then
+          launchctl unload /Library/LaunchDaemons/com.dnsproxy.${name}.plist
+          rm /Library/LaunchDaemons/com.dnsproxy.${name}.plist
+        else
+          exec ${buildCommand config}
+        fi
+      '';
+    } else {
+      # Linux systemd service
+      type = "app";
+      program = pkgs.writeShellScript "dnsproxy-${name}-systemd" ''
+        #!/bin/sh
+        if [ "$1" = "install" ]; then
+          cat > /etc/systemd/system/dnsproxy-${name}.service << EOF
+        [Unit]
+        Description=DNS Proxy for ${name} (${listenAddr})
+        After=network.target
+
+        [Service]
+        ExecStart=${buildCommand config}
+        Restart=always
+        DynamicUser=true
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+          systemctl daemon-reload
+          systemctl enable dnsproxy-${name}
+          systemctl start dnsproxy-${name}
+        elif [ "$1" = "uninstall" ]; then
+          systemctl stop dnsproxy-${name}
+          systemctl disable dnsproxy-${name}
+          rm /etc/systemd/system/dnsproxy-${name}.service
+          systemctl daemon-reload
+        else
+          exec ${buildCommand config}
+        fi
+      '';
+    };
+  in serviceConfig;
+
 in
 {
-  inherit createScript createSystemdService defaultConfig mergeWithDefaults;
+  inherit createScript createSystemdService defaultConfig mergeWithDefaults createService;
 } 

@@ -188,15 +188,12 @@ in
         '';
         Restart = "always";
         DynamicUser = true;
-        ${if ddns.enabled then ''
-        # Environment variables for DDNS configuration
-        Environment = [
+        Environment = if ddns.enabled then [
           "DDNS_PROVIDER=${ddns.provider}"
           "DDNS_DOMAIN=${ddns.domain}"
           "DDNS_USERNAME=${ddns.username}"
           "DDNS_PASSWORD=${ddns.password}"
-        ];
-        '' else ""}
+        ] else [];
       };
     };
   };

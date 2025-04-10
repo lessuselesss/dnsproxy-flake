@@ -1,41 +1,59 @@
-{ pkgs, lib, dnsproxy, ... }:
+{ pkgs, dnsproxy }:
 
 let
   # Import the library functions
-  dnsproxy-lib = import ../lib.nix {
-    inherit pkgs dnsproxy;
-    name = "example";
-    listenAddr = "127.0.0.1";
-    upstreams = [
-      "tls://1.1.1.1"
-      "tls://1.0.0.1"
-    ];
-  };
-
-  # Configuration with only non-default values
-  config = {
-    # Cache configuration
-    cache = true;
-    cacheSize = 8192;
+  lib = import ../lib.nix { inherit pkgs dnsproxy; };
+  
+  # Basic provider information
+  name = "example";
+  listenAddr = "127.0.0.1";
+  listenPort = 53;
+  description = "Example DNS Provider Configuration";
+  
+  # Override only what's necessary from the defaults
+  config = lib.mergeWithDefaults lib.defaultConfig {
+    # Basic configuration
+    port = listenPort;
     
-    # Performance tuning
-    timeout = "5s";
-    
-    # Security features
-    refuseAny = true;
+    # Plain DNS configuration
+    plainDns = {
+      enabled = true;
+      upstreams = [
+        "9.9.9.9"
+        "149.112.112.112"
+      ];
+    };
   };
 
   # Create the script
-  script = dnsproxy-lib.createScript config;
-
-  # Create the systemd service
-  service = dnsproxy-lib.createSystemdService config;
+  script = lib.createScript config;
 
 in
 {
-  # Make the script available in the system
-  environment.systemPackages = [ script ];
+  app = {
+    "dnsproxy-${name}" = {
+      type = "app";
+      program = "${script}";
+    };
+  };
 
-  # Enable the systemd service
-  systemd.services."dnsproxy-${dnsproxy-lib.name}" = service;
+  systemdService = {
+    "dnsproxy-${name}" = lib.createSystemdService config;
+  };
+  
+  # Provider IP address information
+  providerInfo = {
+    name = name;
+    description = description;
+    listenAddr = listenAddr;
+    listenPort = listenPort;
+    ipv6 = config.ipv6;
+    upstreamAddresses = {
+      plain = config.plainDns.upstreams;
+      dot = if config.dot.enabled then [config.dot.upstream] else [];
+      doh = if config.doh.enabled then [config.doh.upstream] else [];
+      doq = if config.doq.enabled then [config.doq.upstream] else [];
+      dnscrypt = if config.dnscrypt.enabled then [config.dnscrypt.stamp] else [];
+    };
+  };
 } 
