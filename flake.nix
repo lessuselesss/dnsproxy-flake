@@ -27,6 +27,9 @@
         
         # Import the test proxy
         testProxy = import ./modules/test-proxy.nix { inherit pkgs dnsproxy; };
+        
+        # Import Google with localhost
+        googleLocal = import ./modules/google-local.nix { inherit pkgs dnsproxy; };
       in
       {
         packages.default = dnsproxy;
@@ -39,6 +42,7 @@
           };
           setup-loopback = setupLoopback;
           test-proxy = testProxy;
+          "dnsproxy-google-local" = googleLocal.app."dnsproxy-google-local";
         };
         
         # NixOS module
