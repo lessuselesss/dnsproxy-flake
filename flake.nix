@@ -12,7 +12,7 @@
         pkgs = import nixpkgs { inherit system; };
         
         # Import the dnsproxy package
-        dnsproxy = import ./modules/package.nix { inherit pkgs; };
+        dnsproxy = import ./providers/package.nix { inherit pkgs; };
         
         # Create a default wrapper script
         defaultScript = pkgs.writeShellScript "dnsproxy-default" ''
@@ -20,21 +20,14 @@
         '';
         
         # Import all providers from default.nix
-        providers = import ./modules/default.nix { inherit pkgs dnsproxy; };
-        
-        # Import the loopback setup app
-        setupLoopback = import ./modules/setup-loopback.nix { inherit pkgs; };
+        providers = import ./providers/default.nix { inherit pkgs dnsproxy; };
         
         # Import the test proxy
-        testProxy = import ./modules/test-proxy.nix { inherit pkgs dnsproxy; };
-        
-        # Import provider summary for documentation
-        providerSummary = import ./modules/provider-summary.nix { inherit pkgs dnsproxy; };
+        testProxy = import ./providers/test-proxy.nix { inherit pkgs dnsproxy; };
       in
       {
         packages = {
           default = dnsproxy;
-          providerSummaryDoc = providerSummary.markdown;
         };
         
         # Add all provider apps from the central providers module
@@ -43,12 +36,8 @@
             type = "app";
             program = "${defaultScript}";
           };
-          setup-loopback = setupLoopback;
           test-proxy = testProxy;
         };
-        
-        # Expose provider information
-        providerInfo = providerSummary.summary;
         
         # NixOS module
         nixosModules.dnsproxy-providers = providers.nixosModule;

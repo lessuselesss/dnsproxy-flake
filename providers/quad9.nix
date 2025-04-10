@@ -1,11 +1,14 @@
 { pkgs, dnsproxy }:
 
 let
-  name = "opendns";
-  listenAddr = "127.208.67.222";
+  name = "quad9";
+  listenAddr = "127.9.9.99";
   upstreams = [
-    "dns://208.67.222.222"
-    "dns://208.67.220.220"
+    "dns://9.9.9.9"
+    "dns://149.112.112.112"
+    # Uncomment the following lines to enable DNS over TLS
+    # "tls://dns.quad9.net"  # Quad9 DoT
+    # "tls://[2620:9f::1]"    # Quad9 IPv6 DoT
   ];
 
   # Create the script
@@ -30,7 +33,7 @@ in
 
   systemdService = {
     "dnsproxy-${name}" = {
-      description = "DNS Proxy for OpenDNS (${listenAddr})";
+      description = "DNS Proxy for Quad9 (${listenAddr})";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {

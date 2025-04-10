@@ -22,6 +22,7 @@ let
   comodo = import ./comodo.nix { inherit pkgs dnsproxy; };
   alidns = import ./alidns.nix { inherit pkgs dnsproxy; };
   dns64Private = import ./dns64-private.nix { inherit pkgs dnsproxy; };
+  example = import ./example.nix { inherit pkgs dnsproxy; };
   
   # Combine all apps and service definitions
   allProviders = [
@@ -46,6 +47,7 @@ let
     comodo
     alidns
     dns64Private
+    example
   ];
 in
 {
