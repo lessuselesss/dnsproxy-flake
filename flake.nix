@@ -21,16 +21,20 @@
         
         # Import all providers
         providers = import ./modules/providers.nix { inherit pkgs dnsproxy; };
+        
+        # Import the loopback setup app
+        setupLoopback = import ./modules/setup-loopback.nix { inherit pkgs; };
       in
       {
         packages.default = dnsproxy;
         
-        # Add all provider apps and default app
+        # Add all provider apps, default app, and setup loopback app
         apps = providers.apps // {
           default = {
             type = "app";
             program = "${defaultScript}";
           };
+          setup-loopback = setupLoopback;
         };
         
         # NixOS module
