@@ -1,33 +1,36 @@
 { pkgs, dnsproxy }:
 
 let
-  name = "quad9";
-  listenAddr = "127.9.9.99";
+  name = "dnswatch";
+  listenAddr = "127.185.39.10";
   upstreams = [
-    "dns://9.9.9.9"
-    "dns://149.112.112.112"
+    "dns://84.200.69.80"
+    "dns://84.200.70.40"
   ];
+
+  # Create the script
+  script = pkgs.writeShellScript "dnsproxy-${name}" ''
+    exec ${dnsproxy}/bin/dnsproxy \
+      --listen=${listenAddr} \
+      --port=53 \
+      --upstream=${builtins.elemAt upstreams 0} \
+      --upstream=${builtins.elemAt upstreams 1} \
+      --cache \
+      --cache-size=4096 \
+      --log
+  '';
 in
 {
   app = {
     "dnsproxy-${name}" = {
       type = "app";
-      program = pkgs.writeShellScript "dnsproxy-${name}" ''
-        exec ${dnsproxy}/bin/dnsproxy \
-          --listen=${listenAddr} \
-          --port=53 \
-          --upstream=${builtins.elemAt upstreams 0} \
-          --upstream=${builtins.elemAt upstreams 1} \
-          --cache \
-          --cache-size=4096 \
-          --log
-      '';
+      program = "${script}";
     };
   };
 
   systemdService = {
     "dnsproxy-${name}" = {
-      description = "DNS Proxy for Quad9 (${listenAddr})";
+      description = "DNS Proxy for DNS.WATCH (${listenAddr})";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {

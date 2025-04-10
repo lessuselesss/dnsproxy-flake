@@ -1,33 +1,36 @@
 { pkgs, dnsproxy }:
 
 let
-  name = "opendns";
-  listenAddr = "127.208.67.222";
+  name = "dnswatch";
+  listenAddr = "127.185.39.10";
   upstreams = [
-    "dns://208.67.222.222"
-    "dns://208.67.220.220"
+    "dns://84.200.69.80"
+    "dns://84.200.70.40"
   ];
+
+  # Create the script
+  script = pkgs.writeShellScript "dnsproxy-${name}" ''
+    exec ${dnsproxy}/bin/dnsproxy \
+      --listen=${listenAddr} \
+      --port=53 \
+      --upstream=${builtins.elemAt upstreams 0} \
+      --upstream=${builtins.elemAt upstreams 1} \
+      --cache \
+      --cache-size=4096 \
+      --log
+  '';
 in
 {
   app = {
     "dnsproxy-${name}" = {
       type = "app";
-      program = pkgs.writeShellScript "dnsproxy-${name}" ''
-        exec ${dnsproxy}/bin/dnsproxy \
-          --listen=${listenAddr} \
-          --port=53 \
-          --upstream=${builtins.elemAt upstreams 0} \
-          --upstream=${builtins.elemAt upstreams 1} \
-          --cache \
-          --cache-size=4096 \
-          --log
-      '';
+      program = "${script}";
     };
   };
 
   systemdService = {
     "dnsproxy-${name}" = {
-      description = "DNS Proxy for OpenDNS (${listenAddr})";
+      description = "DNS Proxy for DNS.WATCH (${listenAddr})";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {

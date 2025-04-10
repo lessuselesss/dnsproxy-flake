@@ -14,20 +14,24 @@
         # Import the dnsproxy package
         dnsproxy = import ./modules/package.nix { inherit pkgs; };
         
+        # Create a default wrapper script
+        defaultScript = pkgs.writeShellScript "dnsproxy-default" ''
+          exec ${dnsproxy}/bin/dnsproxy "$@"
+        '';
+        
         # Import all providers
-        providers = import ./modules/providers { inherit pkgs dnsproxy; };
+        providers = import ./modules/providers.nix { inherit pkgs dnsproxy; };
       in
       {
         packages.default = dnsproxy;
         
-        # Default app is just the plain dnsproxy
-        apps.default = {
-          type = "app";
-          program = "${dnsproxy}/bin/dnsproxy";
+        # Add all provider apps and default app
+        apps = providers.apps // {
+          default = {
+            type = "app";
+            program = "${defaultScript}";
+          };
         };
-        
-        # Add all provider apps
-        apps = providers.apps;
         
         # NixOS module
         nixosModules.dnsproxy-providers = providers.nixosModule;
