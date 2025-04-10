@@ -1,54 +1,54 @@
 { pkgs, dnsproxy }:
 
 let
+  # Basic provider information
   name = "adguard";
-  listenAddr = "127.94.14.14";
+  listenAddr = "127.140.14.14";  # Mnemonic IP for provider info (based on 94.140.14.14)
+  listenPort = 5355;  # Use non-privileged port
+  description = "DNS Proxy for AdGuard";
+  
+  # Default upstreams
   upstreams = [
-    "dns://94.140.14.14"
-    "dns://94.140.15.15"
-    "dns://[2001:db8::1]"  # Example IPv6 address
-    "dns://[2001:db8::2]"  # Example IPv6 address
+    "94.140.14.14"
+    "94.140.15.15"
+    "2001:db8::1"  # Example IPv6 address
+    "2001:db8::2"  # Example IPv6 address
   ];
+  
+  # Import the library functions
+  lib = import ../lib.nix { inherit pkgs dnsproxy name listenAddr upstreams; };
+  
+  # Override only what's necessary from the defaults
+  config = lib.mergeWithDefaults lib.defaultConfig {
+    # Basic configuration
+    port = listenPort;
+    
+    # Plain DNS configuration
+    upstream = upstreams;
+    
+    # IPv6 configuration
+    ipv6 = {
+      enabled = true;
+      listenAddr = "::1";
+    };
+  };
 
-  # Create the script
-  script = pkgs.writeShellScript "dnsproxy-${name}" ''
-    exec ${dnsproxy}/bin/dnsproxy \
-      --listen=${listenAddr} \
-      --port=53 \
-      --upstream=${builtins.elemAt upstreams 0} \
-      --upstream=${builtins.elemAt upstreams 1} \
-      --cache \
-      --cache-size=4096 \
-      --log
-  '';
+  # Create the scripts
+  script = lib.createScript config;
+
 in
 {
   app = {
-    "dnsproxy-${name}" = {
+    "${name}" = {
       type = "app";
       program = "${script}";
     };
   };
 
   systemdService = {
-    "dnsproxy-${name}" = {
-      description = "DNS Proxy for AdGuard (${listenAddr})";
-      after = [ "network.target" ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        ExecStart = ''
-          ${dnsproxy}/bin/dnsproxy \
-            --listen=${listenAddr} \
-            --port=53 \
-            --upstream=${builtins.elemAt upstreams 0} \
-            --upstream=${builtins.elemAt upstreams 1} \
-            --cache \
-            --cache-size=4096 \
-            --log
-        '';
-        Restart = "always";
-        DynamicUser = true;
-      };
-    };
+    "dnsproxy-${name}" = lib.createSystemdService config;
   };
+  
+  # Provider IP address information
+  providerInfo = lib.createProviderInfo config;
 } 

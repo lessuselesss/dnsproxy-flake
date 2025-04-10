@@ -3,7 +3,7 @@
 let
   # Basic provider information
   name = "cloudflare";
-  listenAddr = "127.0.0.1"; # Standard localhost address
+  listenAddr = "127.1.1.11"; # Standard localhost address
   listenPort = 5353; # Use non-privileged port
   description = "DNS Proxy for Cloudflare";
   
@@ -88,18 +88,5 @@ in
   };
   
   # Provider IP address information
-  providerInfo = {
-    name = name;
-    description = description;
-    listenAddr = listenAddr;
-    listenPort = listenPort;
-    ipv6 = config.ipv6;
-    upstreamAddresses = {
-      plain = config.plainDns.upstreams;
-      dot = if config.dot.enabled then [config.dot.upstream] else [];
-      doh = if config.doh.enabled then [config.doh.upstream] else [];
-      doq = if config.doq.enabled then [config.doq.upstream] else [];
-      dnscrypt = if config.dnscrypt.enabled then [config.dnscrypt.stamp] else [];
-    };
-  };
+  providerInfo = lib.createProviderInfo config;
 } 

@@ -138,6 +138,38 @@ let
     domains = [];
   };
 
+  # Provider-specific defaults
+  providerDefaults = {
+    cloudflare = {
+      name = "cloudflare";
+      listenAddr = "127.0.0.1";
+      listenPort = 5353;
+      description = "DNS Proxy for Cloudflare";
+      upstreams = [
+        "1.1.1.1"
+        "1.0.0.1"
+        "2606:4700:4700::1111"
+        "2606:4700:4700::1001"
+      ];
+      dot = {
+        enabled = true;
+        upstream = "tls://cloudflare-dns.com";
+      };
+      doh = {
+        enabled = true;
+        upstream = "https://cloudflare-dns.com/dns-query";
+      };
+      doq = {
+        enabled = true;
+        upstream = "quic://cloudflare-dns.com";
+      };
+      dnscrypt = {
+        enabled = true;
+        stamp = "sdns://AgcAAAAAAAAABzEuMC4wLjEAEmRucy5jbG91ZGZsYXJlLmNvbQovZG5zLXF1ZXJ5";
+      };
+    };
+  };
+
   # Helper function to merge configurations with defaults
   mergeWithDefaults = base: overrides:
     let
@@ -234,8 +266,43 @@ let
       ${builtins.concatStringsSep " \\\n      " allArgs}
   '';
 
+  # Create provider information structure
+  createProviderInfo = config: {
+    name = name;
+    description = "DNS Proxy for ${name}";
+    listenAddr = listenAddr;
+    listenPort = config.port;
+    ipv6 = config.ipv6;
+    upstreamAddresses = {
+      plain = config.plainDns.upstreams;
+      dot = if config.dot.enabled then [config.dot.upstream] else [];
+      doh = if config.doh.enabled then [config.doh.upstream] else [];
+      doq = if config.doq.enabled then [config.doq.upstream] else [];
+      dnscrypt = if config.dnscrypt.enabled then [config.dnscrypt.stamp] else [];
+    };
+  };
+
   # Create the script with all configuration options
   createScript = config: pkgs.writeShellScript "dnsproxy-${name}" ''
+    # Check if the IP is already configured
+    if ! ifconfig lo0 | grep -q "${listenAddr}"; then
+      echo "Configuring ${listenAddr} for ${name}..."
+      # Try to configure without sudo first
+      if ! ifconfig lo0 alias ${listenAddr} up 2>/dev/null; then
+        # If that failed, try with sudo
+        echo "Requires root privileges to configure ${listenAddr}"
+        if command -v sudo >/dev/null 2>&1; then
+          if ! sudo ifconfig lo0 alias ${listenAddr} up; then
+            echo "Failed to configure ${listenAddr}. Please run: sudo ifconfig lo0 alias ${listenAddr} up"
+            exit 1
+          fi
+        else
+          echo "Failed to configure ${listenAddr}. Please run: sudo ifconfig lo0 alias ${listenAddr} up"
+          exit 1
+        fi
+      fi
+    fi
+
     exec ${buildCommand config}
   '';
 
@@ -325,7 +392,84 @@ let
     };
   in serviceConfig;
 
+  # Create a provider configuration
+  createProviderConfig = providerName: let
+    provider = providerDefaults.${providerName};
+  in {
+    app = {
+      "${provider.name}" = {
+        type = "app";
+        program = createScript (mergeWithDefaults defaultConfig {
+          port = provider.listenPort;
+          upstream = provider.upstreams;
+          dot = provider.dot;
+          doh = provider.doh;
+          doq = provider.doq;
+          dnscrypt = provider.dnscrypt;
+        });
+      };
+    };
+    
+    providerInfo = {
+      name = provider.name;
+      description = provider.description;
+      listenAddr = provider.listenAddr;
+      listenPort = provider.listenPort;
+      ipv6 = ipv6Defaults;
+      upstreamAddresses = {
+        plain = provider.upstreams;
+        dot = if provider.dot.enabled then [provider.dot.upstream] else [];
+        doh = if provider.doh.enabled then [provider.doh.upstream] else [];
+        doq = if provider.doq.enabled then [provider.doq.upstream] else [];
+        dnscrypt = if provider.dnscrypt.enabled then [provider.dnscrypt.stamp] else [];
+      };
+    };
+  };
+
+  # Create setup script for configuring IP addresses
+  createSetupScript = config:
+    pkgs.writeShellScript "setup-${name}" ''
+      # Check if the IP is already configured
+      if ifconfig lo0 | grep -q "${listenAddr}"; then
+        echo "IP ${listenAddr} is already configured"
+        exit 0
+      fi
+
+      # Try to configure without sudo first
+      echo "Configuring ${listenAddr} for ${name}..."
+      if ifconfig lo0 alias ${listenAddr} up 2>/dev/null; then
+        echo "Successfully configured ${listenAddr}"
+        exit 0
+      fi
+
+      # If that failed, try with sudo
+      echo "Requires root privileges to configure ${listenAddr}"
+      if command -v sudo >/dev/null 2>&1; then
+        if sudo ifconfig lo0 alias ${listenAddr} up; then
+          echo "Successfully configured ${listenAddr} with sudo"
+          exit 0
+        fi
+      fi
+
+      echo "Failed to configure ${listenAddr}. Please run: sudo ifconfig lo0 alias ${listenAddr} up"
+      exit 1
+    '';
+
 in
 {
-  inherit createScript createSystemdService defaultConfig mergeWithDefaults createService;
+  inherit createScript createSystemdService defaultConfig mergeWithDefaults createService createSetupScript;
+  createProviderInfo = config: {
+    name = name;
+    description = "DNS Proxy for ${name}";
+    listenAddr = listenAddr;
+    listenPort = config.port;
+    ipv6 = config.ipv6;
+    upstreamAddresses = {
+      plain = config.plainDns.upstreams;
+      dot = if config.dot.enabled then [config.dot.upstream] else [];
+      doh = if config.doh.enabled then [config.doh.upstream] else [];
+      doq = if config.doq.enabled then [config.doq.upstream] else [];
+      dnscrypt = if config.dnscrypt.enabled then [config.dnscrypt.stamp] else [];
+    };
+  };
 } 

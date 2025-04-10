@@ -1,14 +1,14 @@
 { pkgs, dnsproxy }:
 
 let
-  # Import the library functions
-  lib = import ../lib.nix { inherit pkgs dnsproxy; };
-  
   # Basic provider information
   name = "example";
   listenAddr = "127.0.0.1";
   listenPort = 53;
   description = "Example DNS Provider Configuration";
+  
+  # Import the library functions
+  lib = import ../lib.nix { inherit pkgs dnsproxy name listenAddr; };
   
   # Override only what's necessary from the defaults
   config = lib.mergeWithDefaults lib.defaultConfig {
@@ -42,18 +42,5 @@ in
   };
   
   # Provider IP address information
-  providerInfo = {
-    name = name;
-    description = description;
-    listenAddr = listenAddr;
-    listenPort = listenPort;
-    ipv6 = config.ipv6;
-    upstreamAddresses = {
-      plain = config.plainDns.upstreams;
-      dot = if config.dot.enabled then [config.dot.upstream] else [];
-      doh = if config.doh.enabled then [config.doh.upstream] else [];
-      doq = if config.doq.enabled then [config.doq.upstream] else [];
-      dnscrypt = if config.dnscrypt.enabled then [config.dnscrypt.stamp] else [];
-    };
-  };
+  providerInfo = lib.createProviderInfo config;
 } 
