@@ -14,38 +14,38 @@
         # Import the dnsproxy package
         dnsproxy = import ./providers/package.nix { inherit pkgs; };
 
-        # Default wrapper script
-        defaultScript = pkgs.writeShellScript "dnsproxy-default" ''
-          exec ${dnsproxy}/bin/dnsproxy "$@"
-        '';
-
         # Wrapper script to dynamically handle arguments
         dnsProxyScript = pkgs.writeShellScript "dns-proxy-runner" ''
           # Parse arguments
           AppBinaryPackageName="$1"
-          Provider="$2"
+          ProviderName="$2"
           Command="$3"
-          Action="$4"
-          Interface="$5"
-          Options="$6"
 
-          # Handle set/get actions
-          if [ "$Action" = "set" ]; then
-            exec ${dnsproxy}/bin/dnsproxy --upstream dns://$Provider --interface $Interface $Options "$AppBinaryPackageName"
-          elif [ "$Action" = "get" ]; then
-            echo "Getting DNS configuration for $AppBinaryPackageName on $Interface"
-            # Placeholder for actual `get` implementation
-          else
-            echo "Invalid action: $Action"
-            exit 1
-          fi
+          # Load provider defaults based on ProviderName
+          case "$ProviderName" in
+            "providerA")
+              DNS="dns://8.8.8.8"
+              Interface="eth0"
+              LogLevel="info"
+              ;;
+            "providerB")
+              DNS="dns://1.1.1.1"
+              Interface="wlan0"
+              LogLevel="debug"
+              ;;
+            *)
+              echo "Unknown provider: $ProviderName"
+              exit 1
+              ;;
+          esac
+
+          # Execute the command with provider defaults
+          exec ${dnsproxy}/bin/dnsproxy --upstream $DNS --interface $Interface --log-level $LogLevel "$AppBinaryPackageName" $Command
         '';
 
         # Import all providers from default.nix
         providers = import ./providers/default.nix { inherit pkgs dnsproxy; };
 
-        # Import the test proxy
-        testProxy = import ./providers/test-proxy.nix { inherit pkgs dnsproxy; };
       in
       {
         packages = {
@@ -54,13 +54,6 @@
 
         # Add all provider apps from the central providers module
         apps = providers.apps // {
-          default = {
-            type = "app";
-            program = "${defaultScript}";
-          };
-          test-proxy = testProxy;
-
-          # Add dynamic DNS configuration app
           dns-proxy = {
             type = "app";
             program = "${dnsProxyScript}";
